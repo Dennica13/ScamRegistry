@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: ScamRegistry
+## Notes: Реестр кидал для 3.3.5a
+## Author: Dennica13
+## Version: 1.0.0
+
+Database.lua
+Core.lua
