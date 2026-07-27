@@ -136,6 +136,7 @@ scanText:SetPoint("TOPLEFT", scanContent, "TOPLEFT", 0, 0)
 scanText:SetWidth(300); scanText:SetJustifyH("LEFT"); scanText:SetJustifyV("TOP")
 
 local lastFoundScammers = {}
+local lastTotalScanned = 0
 
 local sendPartyBtn = CreateFrame("Button", nil, scanFrame, "UIPanelButtonTemplate")
 sendPartyBtn:SetSize(95, 22)
@@ -153,11 +154,17 @@ closeScanBtn:SetPoint("BOTTOMRIGHT", scanFrame, "BOTTOMRIGHT", -15, 10)
 closeScanBtn:SetText("Закрыть")
 closeScanBtn:SetScript("OnClick", function() scanFrame:Hide() end)
 
+-- Функция отправки сообщений в чат
 local function SendScanResultsToChat(chatType)
-    if #lastFoundScammers == 0 then return end
-    SendChatMessage("[ScamRegistry] Внимание! В базе найдено " .. #lastFoundScammers .. " игроков:", chatType)
-    for _, scammer in ipairs(lastFoundScammers) do
-        SendChatMessage(" - " .. scammer.name .. " — " .. GetPluralComplaint(scammer.count), chatType)
+    if #lastFoundScammers > 0 then
+        SendChatMessage("[ScamRegistry] Внимание! В базе найдено " .. #lastFoundScammers .. " игроков:", chatType)
+        for _, scammer in ipairs(lastFoundScammers) do
+            SendChatMessage(" - " .. scammer.name .. " — " .. GetPluralComplaint(scammer.count), chatType)
+        end
+    else
+        local groupTypeStr = (chatType == "RAID") and "рейда" or "группы"
+        SendChatMessage("[ScamRegistry] Сканирование " .. groupTypeStr, chatType)
+        SendChatMessage("Просканировано: " .. lastTotalScanned .. ". Игроков с жалобами не найдено", chatType)
     end
 end
 
@@ -287,17 +294,25 @@ local function ScanRoster()
         end
     end
 
+    lastTotalScanned = totalPlayers
+
     if #lastFoundScammers > 0 then
         local displayText = "|cffffffffСервер:|r " .. GetRealmName() .. "\n|cffffffffПросканировано:|r " .. totalPlayers .. "\n|cffFF0000Найдено нарушителей:|r " .. #lastFoundScammers .. "\n\n"
         for _, scammer in ipairs(lastFoundScammers) do
             displayText = displayText .. "• |cffffcc00" .. scammer.name .. "|r — " .. GetPluralComplaint(scammer.count) .. "\n"
         end
         scanText:SetText(displayText)
-
-        if numRaid > 0 then sendRaidBtn:Enable(); sendPartyBtn:Disable() else sendRaidBtn:Disable(); sendPartyBtn:Enable() end
     else
-        scanText:SetText("|cffffffffСервер:|r " .. GetRealmName() .. "\n|cffffffffПросканировано участники:|r " .. totalPlayers .. "\n\n|cff00ff00Нарушителей не найдено.|r")
-        sendPartyBtn:Disable(); sendRaidBtn:Disable()
+        scanText:SetText("|cffffffffСервер:|r " .. GetRealmName() .. "\n|cffffffffПросканировано участников:|r " .. totalPlayers .. "\n\n|cff00ff00Нарушителей не найдено.|r")
+    end
+
+    -- Кнопки активны всегда в зависимости от присутствия в группе/рейде
+    if numRaid > 0 then
+        sendRaidBtn:Enable()
+        sendPartyBtn:Disable()
+    else
+        sendRaidBtn:Disable()
+        sendPartyBtn:Enable()
     end
 
     scanContent:SetHeight(math.max(scanText:GetStringHeight() + 20, 120))
@@ -320,33 +335,28 @@ controlBar:SetBackdrop({
 controlBar:EnableMouse(true); controlBar:SetMovable(true); controlBar:RegisterForDrag("LeftButton")
 controlBar:SetScript("OnDragStart", controlBar.StartMoving); controlBar:SetScript("OnDragStop", controlBar.StopMovingOrSizing)
 
--- Заголовок панели
 local barTitle = controlBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 barTitle:SetPoint("TOP", controlBar, "TOP", 0, -6)
 barTitle:SetText("|cffFF0000ScamRegistry|r")
 
--- Кнопка "Скан"
 local scanBtn = CreateFrame("Button", nil, controlBar, "UIPanelButtonTemplate")
 scanBtn:SetSize(60, 20)
 scanBtn:SetPoint("BOTTOMLEFT", controlBar, "BOTTOMLEFT", 8, 8)
 scanBtn:SetText("Скан")
 scanBtn:SetScript("OnClick", function() ScanRoster() end)
 
--- Кнопка "Цель"
 local checkBtn = CreateFrame("Button", nil, controlBar, "UIPanelButtonTemplate")
 checkBtn:SetSize(60, 20)
 checkBtn:SetPoint("LEFT", scanBtn, "RIGHT", 4, 0)
 checkBtn:SetText("Цель")
 checkBtn:SetScript("OnClick", function() ShowTargetInfo() end)
 
--- Кнопка "Жалоба"
 local reportBtn = CreateFrame("Button", nil, controlBar, "UIPanelButtonTemplate")
 reportBtn:SetSize(72, 20)
 reportBtn:SetPoint("LEFT", checkBtn, "RIGHT", 4, 0)
 reportBtn:SetText("Жалоба")
 reportBtn:SetScript("OnClick", function() ShowReportWindow() end)
 
--- Кнопка закрытия (X)
 local hideBarBtn = CreateFrame("Button", nil, controlBar, "UIPanelCloseButton")
 hideBarBtn:SetSize(20, 20)
 hideBarBtn:SetPoint("TOPRIGHT", controlBar, "TOPRIGHT", -2, -2)
