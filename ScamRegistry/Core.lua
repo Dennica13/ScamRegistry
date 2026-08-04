@@ -163,8 +163,8 @@ local function SendScanResultsToChat(chatType)
         end
     else
         local groupTypeStr = (chatType == "RAID") and "рейда" or "группы"
-        SendChatMessage("[ScamRegistry] Сканирование " .. groupTypeStr, chatType)
-        SendChatMessage("Просканировано: " .. lastTotalScanned .. ". Игроков с жалобами не найдено", chatType)
+        SendChatMessage("[ScamRegistry] Ищем неадекватов по базе WowCircle " .. groupTypeStr, chatType)
+        SendChatMessage("Прочекано: " .. lastTotalScanned .. ". Неадекватов и кидал не найдено", chatType)
     end
 end
 
